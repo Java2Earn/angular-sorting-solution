@@ -1,127 +1,102 @@
-package org.cap.config;
+package org.cap.controller;
 
-import com.mchange.v2.c3p0.ComboPooledDataSource;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.hibernate.dialect.Oracle10gDialect;
-import org.springframework.context.annotation.*;
-import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
-import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.orm.jpa.JpaVendorAdapter;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
-import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.web.servlet.ViewResolver;
-import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import org.cap.entities.User;
+import org.cap.service.IDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
 
-import javax.persistence.EntityManagerFactory;
-import javax.sql.DataSource;
-import java.util.Properties;
+@Controller
+public class HelloController {
 
-@Configuration
-@EnableWebMvc
-@ComponentScan("org.cap")
-@EnableTransactionManagement
-public class MyWebMVCConfig {
+    /**
+     *  object of DetailsServiceImpl class will be injected
+     */
+    @Autowired
+    private IDetailsService service;
 
-	@Bean
-	public ViewResolver getViewResolver() {
-		InternalResourceViewResolver viewResolver=new InternalResourceViewResolver();
-		viewResolver.setPrefix("/WEB-INF/pages/");
-		viewResolver.setSuffix(".jsp");
-		return viewResolver;
-	}
-	@Bean
-	public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
-		LocalContainerEntityManagerFactoryBean em
-				= new LocalContainerEntityManagerFactoryBean();
-		em.setDataSource(oracleDataSource());
-		em.setPackagesToScan("org.cap");
-		JpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
-		em.setJpaVendorAdapter(vendorAdapter);
-		em.setJpaProperties(oracleProperties());
-		return em;
-	}
-	@Bean
-	public DataSource oracleDataSource() {
-		try {
-			ComboPooledDataSource dataSource = new ComboPooledDataSource();
-			dataSource.setDriverClass("oracle.jdbc.driver.OracleDriver");
-			dataSource.setJdbcUrl("jdbc:oracle:thin:@localhost:1521:xe");
-			dataSource.setUser("bvrit");
-			dataSource.setPassword("bvrit123");
-			return dataSource;
-		} catch (Throwable e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
+    public IDetailsService getService() {
+        return service;
+    }
 
-      Properties oracleProperties() {
-		Properties properties = new Properties();
-		properties.setProperty("hibernate.dialect", Oracle10gDialect.class.getName());
-		properties.setProperty("hibernate.hbm2ddl.auto", "update");
-		properties.setProperty("hibernate.show_sql", "true");
-		properties.setProperty("spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation", "true");
-		return properties;
-	}
+    public void setService(IDetailsService service) {
+        this.service = service;
+    }
 
+    private int i = 0;
 
-//*/
-
-
-	@Bean
-	public PlatformTransactionManager transactionManager(
-			EntityManagerFactory emf) {
-		JpaTransactionManager transactionManager = new JpaTransactionManager();
-		transactionManager.setEntityManagerFactory(emf);
-		return transactionManager;
-	}
-
-	@Bean
-	public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {
-		return new PersistenceExceptionTranslationPostProcessor();
-	}
-
-
-
-
-/*
-
-   For mysql
-
-	@Bean
-	public DataSource mysqlDataSource() {
-		try {
-			ComboPooledDataSource postgresDataSource = new ComboPooledDataSource();
-			postgresDataSource.setDriverClass("com.mysql.jdbc.Driver");
-			postgresDataSource.setJdbcUrl("jdbc:mysql://localhost:3306/students");
-			postgresDataSource.setUser("scooby");
-			postgresDataSource.setPassword("scooby123");
-			return postgresDataSource;
-		} catch (Throwable e) {
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-
-	Properties mysqlProperties() {
-		Properties properties = new Properties();
-		properties.setProperty("hibernate.dialect", MariaDBDialect.class.getName());
-		properties.setProperty("hibernate.hbm2ddl.auto", "update");
-		properties.setProperty("hibernate.show_sql", "false");
-		properties.setProperty("spring.jpa.properties.hibernate.jdbc.lob.non_contextual_creation", "true");
-		return properties;
-	}
-*/
-
-
-
+    @RequestMapping("/hello")
+    public ModelAndView sayHello() {
+        i++;
+        ModelAndView mv = new ModelAndView("hellopage",
+                "message", "Hello request count=" + i);
+        return mv;
+    }
+    @RequestMapping(value = "/userdetails",method = RequestMethod.GET)
+    public ModelAndView userDetails(@RequestParam ("id")int id) {
+        User user = service.findUserById(id);
+        if (user == null) {
+          ModelAndView mv=new ModelAndView("usernotfound","id",id);
+          return mv;
+        }
+        Map<String, Object> modelMap = new HashMap<>();
+        modelMap.put("id", id);
+        modelMap.put("name", user.getName());
+        ModelAndView mv = new ModelAndView("userdetails", modelMap);
+        return mv;
+    }
+    @RequestMapping("/getdetails")
+    public ModelAndView detailsForm() {
+    	return new ModelAndView("detailsform",new HashMap<>());
+    }
+    @RequestMapping("/createuser")
+    public ModelAndView createUserForm(){
+        ModelAndView mv=new ModelAndView("createuser");
+        return mv;
+    }
+    @RequestMapping("/createprocess")
+    public ModelAndView createProcess(@RequestParam String name){
+        User user=service.createUser(name);
+        Map<String,Object>map=new HashMap<>();
+        map.put("id",user.getId());
+        map.put("name",user.getName());
+        ModelAndView mv=new ModelAndView("usercreated",map);
+        return mv;
+    }
 
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
